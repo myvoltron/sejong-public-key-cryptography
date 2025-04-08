@@ -59,4 +59,6 @@ void process_break_cipher() {
   }
 }
 
+void attack_hill_cipher(char *encrypted_text) { return; }
+
 #endif // !BREAKING_TOOLS_H
