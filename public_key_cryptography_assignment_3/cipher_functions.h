@@ -10,9 +10,12 @@
 void process_cipher();
 void process_hill_cipher();
 
+// make 2-dimentional array based on matrix size
 int **make_matrix(int matrix_size);
 void free_matrix(int **matrix, int matrix_size);
+// print all elements of matrix
 void print_matrix(int **matrix, int matrix_size);
+// mod 26
 int mod_alpha(int value);
 
 char *apply_hill_cipher(char *text, int **key_matrix, int key_matrix_size);
@@ -31,6 +34,7 @@ int mod_inverse(int det, int mod);
 void get_inverse_of_matrix(int inverse_of_det, int **adj_matrix,
                            int **inverse_of_matrix, int matrix_size);
 
+// the product of K and K⁻¹ results in the identity matrix.
 void print_matrix_product_proof(int **a_matrix, int **b_matrix,
                                 int matrix_size);
 
@@ -98,7 +102,7 @@ void process_hill_cipher() {
   if (inverse_of_det == -1) {
     printf(
         "Error: The inverse of the determinant does not exist modulo 26!!\n");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
   printf("inverse of determinant in mod 26: %d\n", inverse_of_det);
 
@@ -132,6 +136,7 @@ void process_hill_cipher() {
       apply_hill_cipher(encrypted_text, inverse_of_key_matrix, key_matrix_size);
   printf("decrypted text: %s\n", decrypted_text);
 
+  // free
   free_matrix(key_matrix, key_matrix_size);
   free_matrix(adjoint_of_key_matrix, key_matrix_size);
   free_matrix(inverse_of_key_matrix, key_matrix_size);

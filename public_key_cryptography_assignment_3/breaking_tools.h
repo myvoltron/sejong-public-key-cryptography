@@ -54,6 +54,20 @@ void process_break_cipher() {
   }
 }
 
+/**
+ * Attempts to decrypt a ciphertext encrypted using a 2×2 Hill cipher,
+ * assuming only the ciphertext is available (ciphertext-only attack).
+ *
+ * This function performs a brute-force search over all possible 2×2 key
+ * matrices (modulo 26) that are invertible. For each valid key:
+ * - The matrix inverse is computed.
+ * - The ciphertext is decrypted using the inverse key.
+ * - The decrypted text is scored based on English digram frequency.
+ * - The result with the highest score is selected as the best candidate.
+ *
+ * The best key matrix and corresponding decrypted plaintext are printed at the
+ * end.
+ */
 void attack_hill_cipher(char *encrypted_text) {
   int key[2][2];
   int inverse[2][2];
@@ -115,7 +129,7 @@ void attack_hill_cipher(char *encrypted_text) {
 
   free_matrix(current_matrix, 2);
 
-  printf("Best Key:");
+  printf("Best Key:\n");
   printf("%d %d\n", best_key[0][0], best_key[0][1]);
   printf("%d %d\n", best_key[1][0], best_key[1][1]);
   printf("Best Plaintext by Best Key: %s (Score: %.2f)\n", best_plaintext,
