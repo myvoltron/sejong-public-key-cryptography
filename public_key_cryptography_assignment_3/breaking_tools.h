@@ -6,13 +6,12 @@
 
 #define BREAK_HILL_CIPHER 1
 
+#define MOD 26
+
 typedef struct {
   char digram[3];
   double score;
 } DigramScore;
-
-const char english_letter_frequency_table[] = {'E', 'T', 'A'};
-const int english_letter_frequency_table_length = 3;
 
 // English digram frequency. (by
 // https://en.wikipedia.org/wiki/Bigram#Bigram_frequency_in_the_English_language)
@@ -29,13 +28,9 @@ const DigramScore english_digrams_frequency_table[] = {
 const int digram_table_size =
     sizeof(english_digrams_frequency_table) / sizeof(DigramScore);
 
-// Example Keywords to attack playfair cipher.
-const char *keywords[] = {"MONARCHY", "KEYWORD",  "SECURITY", "FREEDOM",
-                          "VICTORY",  "ENCRYPT",  "HISTORY",  "AGENT",
-                          "NATION",   "OPERATION"};
-
 void process_break_cipher();
 void attack_hill_cipher(char *encrypted_text);
+double score_plaintext(const char text[]);
 
 void process_break_cipher() {
   int attack_mode;
@@ -48,7 +43,7 @@ void process_break_cipher() {
   getchar();
 
   printf("Enter the text to decrypt: ");
-  scanf("%[^\n]s", encrypted_text);
+  scanf("%s", encrypted_text);
 
   switch (attack_mode) {
   case BREAK_HILL_CIPHER:
@@ -59,6 +54,90 @@ void process_break_cipher() {
   }
 }
 
-void attack_hill_cipher(char *encrypted_text) { return; }
+void attack_hill_cipher(char *encrypted_text) {
+  int key[2][2];
+  int inverse[2][2];
+  char decrypted[100];
+
+  double best_score = -1.0;
+  char best_plaintext[100];
+  int best_key[2][2] = {0};
+
+  int **current_matrix = make_matrix(2);
+
+  for (int a = 0; a < MOD; a++) {
+    for (int b = 0; b < MOD; b++) {
+      for (int c = 0; c < MOD; c++) {
+        for (int d = 0; d < MOD; d++) {
+          current_matrix[0][0] = a;
+          current_matrix[0][1] = b;
+          current_matrix[1][0] = c;
+          current_matrix[1][1] = d;
+
+          const int det_of_matrix =
+              mod_alpha(get_determinant(current_matrix, 2));
+          const int inverse_of_det = mod_inverse(det_of_matrix, 26);
+          if (inverse_of_det == -1) {
+            continue;
+          }
+
+          inverse[0][0] = mod_alpha(d * inverse_of_det);
+          inverse[0][1] = mod_alpha(-b * inverse_of_det);
+          inverse[1][0] = mod_alpha(-c * inverse_of_det);
+          inverse[1][1] = mod_alpha(a * inverse_of_det);
+
+          int i, j;
+          for (i = 0; i < strlen(encrypted_text); i += 2) {
+            int x = toupper(encrypted_text[i]) - 'A';
+            int y = toupper(encrypted_text[i + 1]) - 'A';
+
+            int p1 = mod_alpha(inverse[0][0] * x + inverse[0][1] * y);
+            int p2 = mod_alpha(inverse[1][0] * x + inverse[1][1] * y);
+
+            decrypted[i] = 'A' + p1;
+            decrypted[i + 1] = 'A' + p2;
+          }
+          decrypted[i] = '\0';
+
+          double current_score = score_plaintext(decrypted);
+          if (current_score > best_score) {
+            best_score = current_score;
+            strcpy(best_plaintext, decrypted);
+            best_key[0][0] = a;
+            best_key[0][1] = b;
+            best_key[1][0] = c;
+            best_key[1][1] = d;
+          }
+        }
+      }
+    }
+  }
+
+  free_matrix(current_matrix, 2);
+
+  printf("Best Key:");
+  printf("%d %d\n", best_key[0][0], best_key[0][1]);
+  printf("%d %d\n", best_key[1][0], best_key[1][1]);
+  printf("Best Plaintext by Best Key: %s (Score: %.2f)\n", best_plaintext,
+         best_score);
+}
+
+double score_plaintext(const char text[]) {
+  double total_score = 0.0;
+  for (int i = 0; text[i + 1] != '\0'; i++) {
+    char digram[3];
+    digram[0] = toupper(text[i]);
+    digram[1] = toupper(text[i + 1]);
+    digram[2] = '\0';
+
+    for (int j = 0; j < digram_table_size; j++) {
+      if (strcmp(digram, english_digrams_frequency_table[j].digram) == 0) {
+        total_score += english_digrams_frequency_table[j].score;
+        break;
+      }
+    }
+  }
+  return total_score;
+}
 
 #endif // !BREAKING_TOOLS_H
