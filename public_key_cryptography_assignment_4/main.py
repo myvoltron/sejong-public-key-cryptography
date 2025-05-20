@@ -13,11 +13,12 @@ class DESApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("DES Visualization")
-        self.geometry("700x650")
+        self.geometry("700x700")
         self.frames = {}
 
         self.shared_key = ""
-        self.shared_plaintext = ""
+        self.shared_text = ""
+        self.is_encrypt_mode = True
         self.Cn = []
         self.Dn = []
         self.round_keys = []
@@ -25,7 +26,7 @@ class DESApp(tk.Tk):
         self.R0 = []
         self.L_list = []
         self.R_list = []
-        self.ciphertext = ""
+        self.result_text = ""
 
         container = tk.Frame(self)
         container.pack(fill="both", expand=True)
@@ -49,13 +50,17 @@ class DESApp(tk.Tk):
         frame = self.frames[name]
         frame.tkraise()
 
-    def start_key_schedule(self, plaintext, key):
-        self.shared_plaintext = plaintext
+    def start_process(self, text, key, encrypt=True):
+        self.shared_text = text
         self.shared_key = key
+        self.is_encrypt_mode = encrypt
+
         self.Cn, self.Dn = generate_Cn_Dn(key)
         self.round_keys = generate_round_keys(self.Cn, self.Dn)
+        if not encrypt:
+            self.round_keys = self.round_keys[::-1]  # reverse for decryption
 
-        self.L0, self.R0 = apply_initial_permutation(plaintext)
+        self.L0, self.R0 = apply_initial_permutation(text)
         self.L_list = [self.L0]
         self.R_list = [self.R0]
 
@@ -66,7 +71,7 @@ class DESApp(tk.Tk):
             self.L_list.append(new_L)
             self.R_list.append(new_R)
 
-        self.ciphertext = apply_final_permutation(self.L_list[-1], self.R_list[-1])
+        self.result_text = apply_final_permutation(self.L_list[-1], self.R_list[-1])
 
         self.frames["Step1_PC1"].update_display(self.Cn[0], self.Dn[0])
         self.frames["Step2_Shift"].update_display(self.Cn[1:], self.Dn[1:])
@@ -75,28 +80,45 @@ class DESApp(tk.Tk):
             bitlist_to_str(self.L0), bitlist_to_str(self.R0)
         )
         self.frames["Step5_Feistel"].update_display(self.L_list, self.R_list)
-        self.frames["Step6_Final"].update_display(self.ciphertext)
+        self.frames["Step6_Final"].update_display(
+            self.result_text, self.is_encrypt_mode
+        )
 
 
 class InputPage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
-        tk.Label(self, text="Enter Plaintext (16 hex chars):").pack()
-        self.plaintext_entry = tk.Entry(self, width=40)
-        self.plaintext_entry.pack()
+        tk.Label(self, text="Enter 16-digit Hex Text:").pack()
+        self.text_entry = tk.Entry(self, width=40)
+        self.text_entry.pack()
 
-        tk.Label(self, text="Enter Key (16 hex chars):").pack()
+        tk.Label(self, text="Enter 16-digit Hex Key:").pack()
         self.key_entry = tk.Entry(self, width=40)
         self.key_entry.pack()
 
-        tk.Button(self, text="Start Key Schedule", command=self.submit).pack(pady=20)
+        frame = tk.Frame(self)
+        frame.pack(pady=20)
+        tk.Button(frame, text="🔒 Encrypt", command=self.encrypt).grid(
+            row=0, column=0, padx=10
+        )
+        tk.Button(frame, text="🔓 Decrypt", command=self.decrypt).grid(
+            row=0, column=1, padx=10
+        )
+
         self.controller = controller
 
-    def submit(self):
-        pt = self.plaintext_entry.get()
+    def encrypt(self):
+        text = self.text_entry.get()
         key = self.key_entry.get()
-        if len(pt) == 16 and len(key) == 16:
-            self.controller.start_key_schedule(pt, key)
+        if len(text) == 16 and len(key) == 16:
+            self.controller.start_process(text, key, encrypt=True)
+            self.controller.show_frame("Step1_PC1")
+
+    def decrypt(self):
+        text = self.text_entry.get()
+        key = self.key_entry.get()
+        if len(text) == 16 and len(key) == 16:
+            self.controller.start_process(text, key, encrypt=False)
             self.controller.show_frame("Step1_PC1")
 
 
@@ -198,10 +220,9 @@ class Step5_Feistel(tk.Frame):
 class Step6_Final(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
-        tk.Label(self, text="🔹 Final Step: Final Permutation and Ciphertext").pack(
-            pady=10
-        )
-        self.result_label = tk.Label(self, text="", font=("Courier", 16), fg="blue")
+        self.title_label = tk.Label(self, text="", font=("Helvetica", 16))
+        self.title_label.pack(pady=10)
+        self.result_label = tk.Label(self, text="", font=("Courier", 18), fg="blue")
         self.result_label.pack(pady=20)
         tk.Button(
             self,
@@ -210,8 +231,12 @@ class Step6_Final(tk.Frame):
         ).pack(pady=10)
         tk.Button(self, text="Exit", command=controller.quit).pack()
 
-    def update_display(self, ciphertext):
-        self.result_label.config(text=f"Encrypted Ciphertext: {ciphertext}")
+    def update_display(self, result, is_encrypt):
+        if is_encrypt:
+            self.title_label.config(text="🔐 Encrypted Ciphertext")
+        else:
+            self.title_label.config(text="🔓 Decrypted Plaintext")
+        self.result_label.config(text=result)
 
 
 if __name__ == "__main__":
