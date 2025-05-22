@@ -222,8 +222,11 @@ class Step6_Final(tk.Frame):
         super().__init__(parent)
         self.title_label = tk.Label(self, text="", font=("Helvetica", 16))
         self.title_label.pack(pady=10)
-        self.result_label = tk.Label(self, text="", font=("Courier", 18), fg="blue")
-        self.result_label.pack(pady=20)
+
+        self.result_text = tk.Text(self, height=1, font=("Courier", 18), fg="blue")
+        self.result_text.config(state="disabled")
+        self.result_text.pack(pady=20)
+
         tk.Button(
             self,
             text="⬅ Back to Start",
@@ -236,8 +239,11 @@ class Step6_Final(tk.Frame):
             self.title_label.config(text="🔐 Encrypted Ciphertext")
         else:
             self.title_label.config(text="🔓 Decrypted Plaintext")
-        self.result_label.config(text=result)
 
+        self.result_text.config(state="normal")
+        self.result_text.delete("1.0", tk.END)
+        self.result_text.insert("1.0", result)
+        self.result_text.config(state="disabled")
 
 if __name__ == "__main__":
     app = DESApp()
