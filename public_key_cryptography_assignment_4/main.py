@@ -3,12 +3,11 @@ import tkinter.messagebox as msgbox
 from data_encryption_standard import (
     generate_Cn_Dn,
     generate_round_keys,
-    bitlist_to_str,
     apply_initial_permutation,
     apply_final_permutation,
 )
 from feistel import feistel_function
-from helper import is_valid_hex
+from helper import bitlist_to_str, is_valid_hex, xor_for_bitlists
 
 
 class DESApp(tk.Tk):
@@ -66,10 +65,11 @@ class DESApp(tk.Tk):
         self.L_list = [self.L0]
         self.R_list = [self.R0]
 
+        # feistel process
         for i in range(16):
             f_output = feistel_function(self.R_list[i], self.round_keys[i])
             new_L = self.R_list[i]
-            new_R = [a ^ b for a, b in zip(self.L_list[i], f_output)]
+            new_R = xor_for_bitlists(self.L_list[i], f_output)
             self.L_list.append(new_L)
             self.R_list.append(new_R)
 
@@ -126,12 +126,16 @@ class InputPage(tk.Frame):
         if is_valid_hex(text) and is_valid_hex(key):
             self.controller.start_process(text, key, encrypt=False)
             self.controller.show_frame("Step1_PC1")
+        else:
+            msgbox.showerror(
+                "Invalid Input", "Please enter 16-digit valid hexadecimal strings."
+            )
 
 
 class Step1_PC1(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
-        tk.Label(self, text="🔹 Step 1: PC-1 Permutation → C0 and D0").pack(pady=10)
+        tk.Label(self, text="Step 1: PC-1 Permutation → C0 and D0").pack(pady=10)
         self.result_text = tk.Text(self, height=10, width=80)
         self.result_text.pack()
         tk.Button(
@@ -149,7 +153,7 @@ class Step1_PC1(tk.Frame):
 class Step2_Shift(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
-        tk.Label(self, text="🔹 Step 2: Left Shifts → C1~C16, D1~D16").pack(pady=10)
+        tk.Label(self, text="Step 2: Left Shifts → C1~C16, D1~D16").pack(pady=10)
         self.result_text = tk.Text(self, height=20, width=80)
         self.result_text.pack()
         tk.Button(
@@ -168,7 +172,7 @@ class Step2_Shift(tk.Frame):
 class Step3_PC2(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
-        tk.Label(self, text="🔹 Step 3: PC-2 Permutation → K1~K16").pack(pady=10)
+        tk.Label(self, text="Step 3: PC-2 Permutation → K1~K16").pack(pady=10)
         self.result_text = tk.Text(self, height=20, width=80)
         self.result_text.pack()
         tk.Button(
@@ -186,7 +190,7 @@ class Step3_PC2(tk.Frame):
 class Step4_IP(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
-        tk.Label(self, text="🔹 Step 4: Initial Permutation (IP) → L0 and R0").pack(
+        tk.Label(self, text="Step 4: Initial Permutation (IP) → L0 and R0").pack(
             pady=10
         )
         self.result_text = tk.Text(self, height=10, width=80)
@@ -206,7 +210,7 @@ class Step4_IP(tk.Frame):
 class Step5_Feistel(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
-        tk.Label(self, text="🔹 Step 5: Feistel Rounds").pack(pady=10)
+        tk.Label(self, text="Step 5: Feistel Rounds").pack(pady=10)
         self.result_text = tk.Text(self, height=30, width=80)
         self.result_text.pack()
         tk.Button(
@@ -242,9 +246,9 @@ class Step6_Final(tk.Frame):
 
     def update_display(self, result, is_encrypt):
         if is_encrypt:
-            self.title_label.config(text="🔐 Encrypted Ciphertext")
+            self.title_label.config(text="🔐 Encrypted text")
         else:
-            self.title_label.config(text="🔓 Decrypted Plaintext")
+            self.title_label.config(text="🔓 Decrypted text")
 
         self.result_text.config(state="normal")
         self.result_text.delete("1.0", tk.END)

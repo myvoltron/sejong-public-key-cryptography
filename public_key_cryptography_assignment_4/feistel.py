@@ -1,5 +1,9 @@
 from typing import Final, List
 from data_encryption_standard import apply_permutation
+from helper import (
+    bitlist_to_decimal,
+    xor_for_bitlists,
+)
 
 # Expansion table (32 -> 48 bit)
 EXPANSION_TABLE: Final[List[int]] = [
@@ -90,7 +94,7 @@ P_BOX: Final[List[int]] = [
 ]
 
 # S-boxes: 8 boxes, each 4x16
-SBOXES = [
+SBOXES: Final[List[List[List[int]]]] = [
     [
         [14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7],
         [0, 15, 7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 3, 8],
@@ -146,8 +150,8 @@ def sbox_substitution(bits: List[int]) -> List[int]:
     result = []
     for i in range(8):
         block = bits[i * 6 : (i + 1) * 6]
-        row = (block[0] << 1) + block[5]
-        col = int("".join(map(str, block[1:5])), 2)
+        row = bitlist_to_decimal([block[0], block[5]])
+        col = bitlist_to_decimal(block[1:5])
         val = SBOXES[i][row][col]
         result.extend([int(b) for b in f"{val:04b}"])
     return result
@@ -155,7 +159,7 @@ def sbox_substitution(bits: List[int]) -> List[int]:
 
 def feistel_function(R: List[int], Ki: List[int]) -> List[int]:
     expanded_R = apply_permutation(R, EXPANSION_TABLE)
-    xor_result = [a ^ b for a, b in zip(expanded_R, Ki)]
+    xor_result = xor_for_bitlists(expanded_R, Ki)
     sbox_output = sbox_substitution(xor_result)
     return apply_permutation(sbox_output, P_BOX)
 
