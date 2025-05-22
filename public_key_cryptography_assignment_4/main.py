@@ -1,4 +1,5 @@
 import tkinter as tk
+import tkinter.messagebox as msgbox
 from data_encryption_standard import (
     generate_Cn_Dn,
     generate_round_keys,
@@ -7,13 +8,14 @@ from data_encryption_standard import (
     apply_final_permutation,
 )
 from feistel import feistel_function
+from helper import is_valid_hex
 
 
 class DESApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("DES Visualization")
-        self.geometry("700x700")
+        self.geometry("1200x700")
         self.frames = {}
 
         self.shared_key = ""
@@ -110,14 +112,18 @@ class InputPage(tk.Frame):
     def encrypt(self):
         text = self.text_entry.get()
         key = self.key_entry.get()
-        if len(text) == 16 and len(key) == 16:
+        if is_valid_hex(text) and is_valid_hex(key):
             self.controller.start_process(text, key, encrypt=True)
             self.controller.show_frame("Step1_PC1")
+        else:
+            msgbox.showerror(
+                "Invalid Input", "Please enter 16-digit valid hexadecimal strings."
+            )
 
     def decrypt(self):
         text = self.text_entry.get()
         key = self.key_entry.get()
-        if len(text) == 16 and len(key) == 16:
+        if is_valid_hex(text) and is_valid_hex(key):
             self.controller.start_process(text, key, encrypt=False)
             self.controller.show_frame("Step1_PC1")
 
@@ -244,6 +250,7 @@ class Step6_Final(tk.Frame):
         self.result_text.delete("1.0", tk.END)
         self.result_text.insert("1.0", result)
         self.result_text.config(state="disabled")
+
 
 if __name__ == "__main__":
     app = DESApp()
